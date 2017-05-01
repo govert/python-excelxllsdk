@@ -1,0 +1,170 @@
+2013-02-14:
+  - =TESTCASE() should remember the cell range when run, which
+    can then be picked up after calculation.
+  - refactor version information to be sensible? write skipIfNoExcel 
+    skipEtc.
+
+  - how shoudl the wrapper work:
+    - throw an exception that we recognize, then wrap with XLOPER, ok.
+      includign the argument conversion.
+    - if return type conversion fails, then we invoke excepthook.
+    - if excepthook fails, 
+
+2013-02-13:
+  - better design + entineering of contects and xll registration.
+  - refactor the dll registration, so we have DllModule(__dict__)
+    that can register things to a dll export table.
+  - we need an XllModule that does the same thing? 
+
+  - add to registry.py to clear up everything from python, not just a particular xll.
+    (i.e. anything found on sys.path?)
+
+  - allow excel to stop + recalculate if we have a test failure and it is 
+    visible... i.e. don't quit or shutdown the process.
+  - version detection: need to figure out 2003/2007/2010/2013 when
+    modules are imported - can't wait until xlAutoOpen?
+    would like to exclude tests withe skipif=2007
+      - use the file path + file version informaiton? 
+      - use the Applicaiton API? does that work (slower)
+      - leave the adaptation for xlAutoClose
+
+  - should we unregister propertly on xlAutopClose - this will break
+    things if we cancel file save. need to look at the logging...
+      - if xlAutoRemvoe is called, then we do want to unregister
+      - xlfUnregister seems to do it anyway
+
+  - unregistration neets xlSetName to reset xlFunctionText
+
+  - how to solve xll -> moduhle mapping? 
+    how to match up the docstrings? 
+    can we put a docstring into the -script? 
+  - how to intgerate a COM Addin, so we can get the shutdown etc right? 
+  - do we are for unittest, or just reigster over the top.
+
+  - design mapping between script, xll, and entry points? 
+  pkg_resource -> load_entry_point?
+
+  
+2013-02-12:
+  - banish console.c and setup the virtualenv from embed.c
+  - get xlAddInManagerInfo working - ensure whole API works.
+  - normalize versions so we have 2003, 2007, 2010, 2013 - need to enable.disable features better
+  - get coverage up to 100%
+  
+  - how to generalize the type codes etc in xll.py - want to keep xll.py
+     clear of anything - perhaps we nneed dllexport and xllrport?
+  - where should the virtualenv code live? 
+  - where should we import coverage and user? 
+  
+  - fix coverage -how to preload it into the excel process so that it
+    picks up all the python, currentl it misses the _cmdline-script.py
+    import. perhaps we need a better hook.
+    must run after virtualenv, however.
+  - re-jig dllexport + xllexport wrappers so take module + hInstance
+    and export the symbols from them, get rid of the _xll__ stuff? 
+
+  - dllexport(hinst, module) <- interrogate module, export symbols
+        def foo(...):
+          ...
+        foo.__dllexport__ = { type, name }
+  - xllexport(hinst, moidule)
+    - how to manage the return type codes in xll.py? 
+      avoid nastyness
+  X port to XLOPER12
+  X backport to XLOPER4
+  X current problem - how to wrap coverage around xll invokations? 
+
+2013-02-07:
+  X fix unittest functions so they work consistently under unittest
+  X stop uncalced excetpsion from showing stack trace
+  X use tox to manage python environments, not excel.
+  X unify coverage runs between tox environments with paths
+    
+  - get console io working for pdb/interpreter when running in python-xl
+  X get buildbot showing separate indicates for each excel process, and coverage failures.
+    (should the coverage run be a separate job - no tox, just run once inplace?)
+  
+  - can we run tox in a dev mode against current distribution? 
+  - or automate running of tests in multiple excel environments? pyxl?
+  - where should we install virtualenv? _main.py is wrong - run it in the embed? 
+  - move _console.xll into embed? should work find with inherited consoles?  
+   - BBG: run the request generator thingy? 
+   - setup.py : make xll entru points from stock xll or dll.
+   - finish iterator interfaces into XLOPER
+   - make xltypes.process work more like coverage.py, avoid -- and respect options properly
+
+   - redemptions: how to managge/map funds -> redemptions
+    - model a gate? 
+    - model nav/amount based
+    - hook into excel?
+   - spreadsheet object caching: prototype it.
+   X rejig xll registration so it just works on a module, no need fort he __xll__ member.
+   - do the same for pelib? 
+   - get wrappers on acrobat stuff working
+
+2013-02-06:
+
+  X py.test is our test tool now? 
+  X get rid of test_process shutdown problems.
+  X use py.test + xdist to run excel test processes, not tox
+
+
+
+---------------------------------------------------------------
+
+
+- PROCESS CONTROL VIA COM ADDIN?
+  - look at how the location of COM Addin stuff is made: can we put env. variables
+    into the registry values so that we can control where COMAddins come from? 
+    how does a virtualenv get respected when we load up DllEntryPoint from _Ctypes.pyd?
+
+
+
+- PROFILING:
+    - how to generate a profile of a given spreadsheet/test suite?
+      need to honour profiling setup when spawning process.
+
+-   DEPLOYMENT:
+    - how do we ensure isolation - which modules are being loaded when we test? seems like we are picking up the wrong things.
+
+
+- 3RD party fiex
+    - comtypes to install from pip
+    - coverage.py t have a COVERAGE_CONFIG environment variable
+    - coverage.py doesn't like path matching some file names? 
+
+- can we use py2exe to compile into a single dll/xll, or do we need an xll shim?
+
+- can we contorl the loading of ayutomation objects, com addins into an excel
+  process. can register things locally as a user, but can we enclode a given process
+  in a shim registry? Get an XLL to appear as a COM addin automatically?
+  do we need to geneate guids?
+    -xlAutoOpen - generate a GUI fro the object, stick in the registry
+      use auotmation to load it up?
+
+
+- Ribbon = BackPage? stuff - how to represent this in python
+    - look at pyxl model of html? 
+    - can we just annoate python classes with the right methods, and somehow encode their location?
+    - augment existing ribbons, or add new ones.
+    - need an ordering... or a relative insertion thing
+
+
+- EXPERIMENTS:
+    - combined Com Addin with XLL, how to coordinate the process/instances.
+    - asynchronous functions
+    - real time functions = RTD(...)
+    - volatile functions - can we use Application.Volatile to be selective? 
+
+    - how to representint errors + logging data in cells? 
+        - adding comments seems to work, but requires MacroEquiv wrapper
+            =LOG(...) causea all logging evalualted against this cell to be captured and made a comment? 
+            - mouseovers/tooptips on cells?
+            - smart tags? 
+            - simple menu items? 
+
+    - overlaying HTML rendering onto the sheet
+        - have a chromium transparent window sized to the excel worksheet area
+        - represent the active cell/location/events? as a javascript object
+        - hook the chromium model up to some socket server, or set the document directly
+        - do some layout so that we can display context driven html
